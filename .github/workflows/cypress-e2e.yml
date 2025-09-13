@@ -27,7 +27,7 @@ jobs:
       - name: Run Cypress (Chrome, headless)
         uses: cypress-io/github-action@v6
         with:
-          command: npx cypress run --browser chrome --headless
+          browser: chrome
 
       - name: Upload Cypress artifacts
         if: always()
