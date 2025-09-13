@@ -1,0 +1,41 @@
+name: cypress-e2e
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run Cypress (Chrome, headless)
+        uses: cypress-io/github-action@v6
+        with:
+          command: npx cypress run --browser chrome --headless
+
+      - name: Upload Cypress artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-artifacts
+          path: |
+            cypress/screenshots
+            cypress/videos
+            results
+          if-no-files-found: ignore
