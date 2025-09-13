@@ -7,14 +7,21 @@ export default defineConfig({
     baseUrl: 'https://restful-booker.herokuapp.com',
     supportFile: 'cypress/support/e2e.ts',
     setupNodeEvents(on, config) {
-      // cy.task('metrics_appendCsv', { file, line })
+      // Rejestracja taska używanego w cy.recordMetric(...)
       on('task', {
-        metrics_appendCsv({ file, line }: { file: string; line: string }) {
-          const dir = path.join(process.cwd(), 'results')
-          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-          const out = path.join(dir, file)
-          fs.appendFileSync(out, line + '\n', 'utf8')
-          return null
+        metrics_appendCsv(payload) {
+          try {
+            const file = String(payload?.file ?? '')
+            const line = String(payload?.line ?? '')
+            const dir = path.join(process.cwd(), 'results')
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+            const out = path.join(dir, file)
+            fs.appendFileSync(out, line + '\n', 'utf8')
+            return null
+          } catch (e) {
+            // zwróć komunikat do logów cypressa
+            return (e as Error)?.message || String(e)
+          }
         },
       })
       return config
