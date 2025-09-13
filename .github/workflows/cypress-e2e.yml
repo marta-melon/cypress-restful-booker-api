@@ -24,10 +24,25 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Run Cypress (Chrome, headless)
+      # brakujące biblioteki dla przeglądarek (na wszelki wypadek)
+      - name: Install system deps for Cypress
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk2.0-0 libgtk-3-0 libgbm1 libnotify-dev \
+            libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb
+
+      # weryfikacja binarki – jeśli tu padnie, zobaczysz konkretny błąd
+      - name: Verify Cypress
+        run: npx cypress verify
+
+      # uruchamiamy na Electron (najstabilniej), raport JUnit ustawia config
+      - name: Run Cypress (Electron headless)
         uses: cypress-io/github-action@v6
         with:
-          browser: chrome
+          command: npx cypress run --headless --browser electron
+        env:
+          # dodatkowe logi startowe
+          DEBUG: "cypress:*"
 
       - name: Upload Cypress artifacts
         if: always()
