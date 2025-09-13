@@ -1,4 +1,4 @@
-// / <reference types="cypress" />
+/// <reference types="cypress" />
 
 type Creds = { username: string; password: string };
 
@@ -19,44 +19,63 @@ export const Api = {
       method: 'POST',
       url: '/auth',
       body: creds,
-      failOnStatusCode: false
+      failOnStatusCode: false,
     });
   },
+
   listIds(query?: Partial<Booking>) {
-    return cy.request<{ bookingid: number }[]>({ method: 'GET', url: '/booking', qs: query });
+    return cy.request<{ bookingid: number }[]>({
+      method: 'GET',
+      url: '/booking',
+      qs: query,
+    });
   },
+
   create(booking: Booking) {
-    return cy.request<BookingCreateResp>({ method: 'POST', url: '/booking', body: booking });
+    return cy.request<BookingCreateResp>({
+      method: 'POST',
+      url: '/booking',
+      body: booking,
+    });
   },
+
   read(id: number) {
-    return cy.request<Booking>({ method: 'GET', url: `/booking/${id}` });
+    return cy.request<Booking>({
+      method: 'GET',
+      url: `/booking/${id}`,
+      // dla testów negatywnych (np. 404) nie uznawaj za błąd samego requestu
+      failOnStatusCode: false,
+    });
   },
+
   update(id: number, booking: Booking, token?: string) {
     return cy.request<Booking>({
       method: 'PUT',
       url: `/booking/${id}`,
       body: booking,
       headers: token ? { Cookie: `token=${token}` } : undefined,
-      failOnStatusCode: false
+      failOnStatusCode: false,
     });
   },
+
   patch(id: number, patch: Partial<Booking>, token?: string) {
     return cy.request<Booking>({
       method: 'PATCH',
       url: `/booking/${id}`,
       body: patch,
       headers: token ? { Cookie: `token=${token}` } : undefined,
-      failOnStatusCode: false
+      failOnStatusCode: false,
     });
   },
+
   remove(id: number, token?: string) {
     return cy.request({
       method: 'DELETE',
       url: `/booking/${id}`,
       headers: token ? { Cookie: `token=${token}` } : undefined,
-      failOnStatusCode: false
+      failOnStatusCode: false,
     });
-  }
+  },
 };
 
 export type { Booking };
