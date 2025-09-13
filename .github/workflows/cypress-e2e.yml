@@ -24,27 +24,34 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      # brakujące biblioteki dla przeglądarek (na wszelki wypadek)
+      # pomocne logi środowiska
+      - name: Node/Cypress info
+        run: |
+          node -v
+          npm -v
+          npx cypress version
+          npx cypress info || true
+          echo "Spec files:"
+          ls -la cypress/e2e || true
+          printf "\n--- cypress.config.ts ---\n"
+          sed -n '1,120p' cypress.config.ts
+
+      # brakujące biblioteki dla Electron/Chrome
       - name: Install system deps for Cypress
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk2.0-0 libgtk-3-0 libgbm1 libnotify-dev \
             libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb
 
-      # weryfikacja binarki – jeśli tu padnie, zobaczysz konkretny błąd
-      - name: Verify Cypress
-        run: npx cypress verify
-
-      # uruchamiamy na Electron (najstabilniej), raport JUnit ustawia config
+      # uruchom Cypress bezpośrednio (bez wrappera akcji)
       - name: Run Cypress (Electron headless)
-        uses: cypress-io/github-action@v6
-        with:
-          command: npx cypress run --headless --browser electron
-        env:
-          # dodatkowe logi startowe
-          DEBUG: "cypress:*"
+        run: |
+          # jawnie wskaż specy, żeby nie było wątpliwości
+          npx cypress run --headless --browser electron --spec "cypress/e2e/**/*.cy.ts" \
+            --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
 
-      - name: Upload Cypress artifacts
+      # nawet jak się wywali, chcemy mieć artefakty
+      - name: Upload artifacts (screenshots/videos/results)
         if: always()
         uses: actions/upload-artifact@v4
         with:
