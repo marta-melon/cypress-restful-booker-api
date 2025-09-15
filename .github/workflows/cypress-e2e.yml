@@ -43,7 +43,7 @@ jobs:
 
       - name: Run Cypress (Electron headless)
         run: |
-          npx cypress run --headless --browser electron --spec "cypress/e2e/**/*.cy.ts" \
+          npx cypress run --headless --browser electron --spec "cypress/e2e/**/*.cy.js" \
             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
 
       - name: Upload artifacts (screenshots/videos/results)

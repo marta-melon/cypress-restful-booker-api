@@ -1,3 +1,5 @@
+// auth.cy.ts: API tests for Restful Booker.
+
 import { Api } from '../support/apiClient';
 
 describe('Auth', { tags: ['@smoke', '@auth'] }, () => {

@@ -6,17 +6,16 @@ import bookingCreateSchema from '../schemas/booking-create.json'
 const ajv = new Ajv({ allErrors: true, strict: false })
 addFormats(ajv)
 
-// Zarejestruj schematy pod nazwami, których używają $ref
 ajv.addSchema(bookingSchema as object, 'booking.json')
 ajv.addSchema(bookingCreateSchema as object, 'booking-create.json')
 
 export function validateSchema(data: unknown, schema: object) {
   const validate = ajv.compile(schema)
-  const valid = validate(data)
-  if (!valid) {
-    const errors = (validate.errors || [])
-      .map((e) => `${e.instancePath || '/'} ${e.message}`)
+  const ok = validate(data)
+  if (!ok) {
+    const details = (validate.errors || [])
+      .map(e => `${e.instancePath || '/'} ${e.message}`)
       .join('\n')
-    throw new Error(`Schema validation failed:\n${errors}`)
+    throw new Error(`Schema validation failed:\n${details}`)
   }
 }

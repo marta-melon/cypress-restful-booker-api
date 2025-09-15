@@ -1,3 +1,5 @@
+// bookings-crud.cy.ts: API tests for Restful Booker.
+
 import { Api, Booking } from '../support/apiClient';
 
 describe('Bookings CRUD', { tags: ['@regression', '@crud', '@critical'] }, () => {

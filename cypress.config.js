@@ -5,7 +5,7 @@ import path from 'path'
 export default defineConfig({
   e2e: {
     baseUrl: 'https://restful-booker.herokuapp.com',
-    supportFile: 'cypress/support/e2e.ts',
+    supportFile: 'cypress/support/e2e.js',
     setupNodeEvents(on, config) {
       on('task', {
         metrics_appendCsv(payload) {
@@ -13,9 +13,7 @@ export default defineConfig({
             const file = String(payload && payload.file ? payload.file : 'metrics.csv')
             const line = String(payload && payload.line ? payload.line : '')
             const dir = path.join(process.cwd(), 'results')
-            if (!fs.existsSync(dir)) {
-              fs.mkdirSync(dir, { recursive: true })
-            }
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
             const out = path.join(dir, file)
             fs.appendFileSync(out, line + '\n', 'utf8')
             return null
@@ -27,8 +25,8 @@ export default defineConfig({
       return config
     },
     env: {
-      SLA_P95_GET: 1500
-    }
+      SLA_P95_GET: 1500,
+    },
   },
   reporter: 'junit',
   reporterOptions: {

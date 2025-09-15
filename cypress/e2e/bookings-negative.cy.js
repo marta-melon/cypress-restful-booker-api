@@ -1,3 +1,5 @@
+// bookings-negative.cy.ts: API tests for Restful Booker.
+
 import { Api } from '../support/apiClient';
 
 describe('Bookings negative paths', { tags: ['@regression', '@negative'] }, () => {
