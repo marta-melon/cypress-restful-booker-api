@@ -9,7 +9,7 @@ addFormats(ajv)
 ajv.addSchema(bookingSchema, 'booking.json')
 ajv.addSchema(bookingCreateSchema, 'booking-create.json')
 
-export function validateSchema(data: unknown, schema: object) {
+export function validateSchema(data, schema) {
  const validate = ajv.compile(schema)
  const ok = validate(data)
  if (!ok) {
