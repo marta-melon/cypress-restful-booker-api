@@ -1,36 +1,39 @@
-# Cypress Restful Booker API Tests
+# Cypress API – Restful Booker
 
-This project tests the public API **restful-booker.herokuapp.com** with Cypress 13 and JavaScript.
+Lean Cypress project to validate **Restful Booker** API end‑to‑end: authentication, booking CRUD (positive/negative), contracts and operational probes.
 
-## Tests
-- `auth.cy.ts` – token and cookie flow
-- `bookings-crud.cy.ts` – create, read, update, patch, delete
-- `bookings-negative.cy.ts` – 404 and bad requests
-- `security-sanity.cy.ts` – headers and JSON
-- `sla-metrics.cy.ts` – p95 for GET /booking
+## Highlights
+- **Auth** token flow and protected endpoints.
+- **CRUD** for `/booking` with thorough negative matrix.
+- **JSON contracts** via AJV.
+- **SLA probe** (p95) for `GET /booking` across multiple samples.
+- **Security sanity** (headers, content type).
 
-## Install
-```bash
-npm ci
-npx cypress verify
+## Structure
+```
+cypress/
+  e2e/                  # auth, bookings-crud, negative, security, sla
+  fixtures/             # payload templates
+  support/              # api client & helpers
+cypress.config.js
+package.json
 ```
 
 ## Run
-GUI:
 ```bash
-npm run test:gui
-```
-Headless:
-```bash
+npm ci
 npm test
 ```
 
-## CI
-GitHub Actions runs tests on Ubuntu. It uses matrix (Electron + Chrome) and shards.
-
-Flow:
-```
-push -> matrix -> shard -> run -> artifacts
+### Base URL
+Defaults to `https://restful-booker.herokuapp.com`. Override:
+```bash
+BOOKER_BASE_URL=http://localhost:3001 npm test
 ```
 
-CSV metrics are saved to `results/`. Schemas are validated with AJV.
+## Outputs
+- Cypress results with request/response logs.
+- Optional JUnit/JSON reports for CI.
+
+## What these tests cover
+Confidence that core API contracts and behaviors remain stable, and that regressions in performance or basic security are detected quickly.
