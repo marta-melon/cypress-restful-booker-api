@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "postinstall": "husky install || true",
+    "postinstall": "husky || true",
     "cy:open": "cypress open",
     "cy:run": "cypress run",
     "test": "cypress run --headless --browser electron --spec 'cypress/e2e/**/*.cy.js'",
     "test:gui": "cypress open",
     "test:ci": "cypress run --browser chrome --headless --reporter junit --reporter-options mochaFile=results/junit-[hash].xml --record false",
-    "lint": "eslint . --ext .ts,.tsx,.js",
+    "lint": "eslint . --ext .js",
     "format": "prettier --write ."
   },
   "devDependencies": {
@@ -21,6 +21,6 @@
     "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-cypress": "^2.15.2",
     "husky": "^9.0.11",
-    "prettier": "^3.3.3"
+    "prettier": "^3.6.2"
   }
 }

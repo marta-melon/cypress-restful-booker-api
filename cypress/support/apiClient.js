@@ -1,65 +1,65 @@
 export const Api = {
   auth({ username, password }) {
     return cy.request({
-      method: 'POST',
-      url: '/auth',
+      method: "POST",
+      url: "/auth",
       body: { username, password },
       failOnStatusCode: false,
-    })
+    });
   },
 
   listIds(query = {}) {
     return cy.request({
-      method: 'GET',
-      url: '/booking',
+      method: "GET",
+      url: "/booking",
       qs: query,
       failOnStatusCode: false,
-    })
+    });
   },
 
   read(id) {
     return cy.request({
-      method: 'GET',
+      method: "GET",
       url: `/booking/${id}`,
       failOnStatusCode: false,
-    })
+    });
   },
 
   create(booking) {
     return cy.request({
-      method: 'POST',
-      url: '/booking',
+      method: "POST",
+      url: "/booking",
       body: booking,
       failOnStatusCode: false,
-    })
+    });
   },
 
   update(id, booking, token) {
     return cy.request({
-      method: 'PUT',
+      method: "PUT",
       url: `/booking/${id}`,
       body: booking,
       headers: token ? { Cookie: `token=${token}` } : undefined,
       failOnStatusCode: false,
-    })
+    });
   },
 
   partialUpdate(id, patch, token) {
     return cy.request({
-      method: 'PATCH',
+      method: "PATCH",
       url: `/booking/${id}`,
       body: patch,
       headers: token ? { Cookie: `token=${token}` } : undefined,
       failOnStatusCode: false,
-    })
+    });
   },
 
   remove(id, token) {
     return cy.request({
-      method: 'DELETE',
+      method: "DELETE",
       url: `/booking/${id}`,
       headers: token ? { Cookie: `token=${token}` } : undefined,
       failOnStatusCode: false,
-    })
+    });
   },
-}
+};
