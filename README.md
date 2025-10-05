@@ -9,7 +9,7 @@ Lean Cypress project validating **Restful Booker** API end-to-end: authenticatio
 - **AJV**-based **JSON schema** validation  
 - **SLA probe** (`p95`) for `GET /booking` across samples  
 - **Security sanity** (headers, content type)  
-- Pure **JavaScript** (no TypeScript) and clean ESM setup  
+
 
 ## Structure
 
