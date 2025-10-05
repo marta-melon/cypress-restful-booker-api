@@ -4,8 +4,13 @@ import { Api } from "../support/apiClient";
 
 describe("Auth", { tags: ["@smoke", "@auth"] }, () => {
   it("creates token with valid credentials", () => {
-    const username = Cypress.env("AUTH_USER") || "admin";
-    const password = Cypress.env("AUTH_PASS") || "password123";
+const username = Cypress.env("AUTH_USER");
+const password = Cypress.env("AUTH_PASS");
+// Fail fast if credentials are missing. We never want hardcoded defaults in code.
+if (!username || !password) {
+  throw new Error("AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets.");
+}
+
 
     Api.auth({ username, password }).then((res) => {
       expect(res.status).to.eq(200);
@@ -15,8 +20,13 @@ describe("Auth", { tags: ["@smoke", "@auth"] }, () => {
   });
 
   it("returns 200 with token on cookie for protected ops (sanity)", () => {
-    const username = Cypress.env("AUTH_USER") || "admin";
-    const password = Cypress.env("AUTH_PASS") || "password123";
+const username = Cypress.env("AUTH_USER");
+const password = Cypress.env("AUTH_PASS");
+// Fail fast if credentials are missing. We never want hardcoded defaults in code.
+if (!username || !password) {
+  throw new Error("AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets.");
+}
+
 
     Api.auth({ username, password }).then((res) => {
       const token = res.body.token;

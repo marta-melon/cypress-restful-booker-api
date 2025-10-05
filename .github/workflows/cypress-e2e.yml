@@ -27,8 +27,13 @@ jobs:
         run: npx cypress verify
 
       - name: Run Cypress (Electron headless)
+        # Map GitHub secrets -> Cypress env vars used by tests
+        env:
+          AUTH_USER: ${{ secrets.CYPRESS_USERNAME }}
+          AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD }}
         run: |
-          npx cypress run --headless --browser electron --spec "cypress/e2e/**/*.cy.js"             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
+          npx cypress run --headless --browser electron --spec "cypress/e2e/**/*.cy.js" \
+            --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
 
       - name: Upload artifacts (screenshots/videos/results)
         if: always()
