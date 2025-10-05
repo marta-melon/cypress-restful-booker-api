@@ -1,12 +1,12 @@
 // Negative auth tests using raw cy.request.
+// NOTE: Use relative URLs so Cypress baseUrl applies. Do not rely on a custom BASE env.
 // Some APIs return 404 to avoid user enumeration; include 404 in expectations.
-const BASE = Cypress.env("BASE_URL");
 
 describe("Auth — negative cases", () => {
   it("Wrong password -> should NOT return a valid token", () => {
     cy.request({
       method: "POST",
-      url: `${BASE}/auth`,
+      url: `/auth`,
       body: { username: "admin", password: "totally-wrong" },
       failOnStatusCode: false,
     }).then((res) => {
@@ -20,7 +20,7 @@ describe("Auth — negative cases", () => {
   it("Wrong username -> should NOT return a valid token", () => {
     cy.request({
       method: "POST",
-      url: `${BASE}/auth`,
+      url: `/auth`,
       body: { username: "no-such-user", password: "whatever" },
       failOnStatusCode: false,
     }).then((res) => {
