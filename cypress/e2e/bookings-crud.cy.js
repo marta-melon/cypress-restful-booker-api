@@ -91,10 +91,21 @@ describe(
     });
 
     it("partially updates the booking (PATCH)", () => {
+      // Some apiClient versions lack a 'patch' method. Use cy.request() directly to avoid wrapper mismatch.
       const patch = { additionalneeds: "Dinner" };
       const t0 = performance.now();
-      // Use Api.patch directly; some older clients may not have partialUpdate alias.
-      Api.patch(createdId, patch, token).then((res) => {
+      cy.request({
+        method: "PATCH",
+        url: `/booking/${createdId}`,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          // Restful Booker expects auth token in Cookie header for protected endpoints
+          Cookie: `token=${token}`,
+        },
+        body: patch,
+        failOnStatusCode: false,
+      }).then((res) => {
         const dt = performance.now() - t0;
         cy.recordMetric("patch-booking.csv", "PATCH", `/booking/${createdId}`, dt, res.status);
 
