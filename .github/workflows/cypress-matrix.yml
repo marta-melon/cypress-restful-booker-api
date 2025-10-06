@@ -33,9 +33,7 @@ jobs:
 
       - name: Run Cypress
         env:
-          # matrix browser -> CLI
           BROWSER: ${{ matrix.browser }}
-          # GitHub Secrets -> Cypress env vars expected by tests
           AUTH_USER: ${{ secrets.CYPRESS_USERNAME }}
           AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD }}
         run: |
