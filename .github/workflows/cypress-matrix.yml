@@ -14,7 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         browser: [electron, chrome]
-        index: [1]
 
     steps:
       - name: Checkout
@@ -31,7 +30,21 @@ jobs:
       - name: Verify Cypress
         run: npx cypress verify
 
-      - name: Run Cypress
+      - name: Check secrets presence (masked)
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          AUTH_USER: ${{ secrets.CYPRESS_USERNAME }}
+          AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD }}
+        run: |
+          if [ -z "$AUTH_USER" ] || [ -z "$AUTH_PASS" ]; then
+            echo "Secrets are NOT visible to this job. Ensure they are set at: Settings → Security → Secrets and variables → Actions → Secrets."
+            exit 1
+          else
+            echo "Secrets are present (values masked)."
+          fi
+
+      - name: Run Cypress — with secrets
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           BROWSER: ${{ matrix.browser }}
           AUTH_USER: ${{ secrets.CYPRESS_USERNAME }}
@@ -39,11 +52,19 @@ jobs:
         run: |
           npx cypress run --headless --browser "$BROWSER"             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
 
+      - name: Run Cypress (no-secrets subset for fork PRs)
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        env:
+          BROWSER: ${{ matrix.browser }}
+        run: |
+          echo "Running subset of specs without secrets (fork PR)."
+          npx cypress run --headless --browser "$BROWSER"             --spec "cypress/e2e/auth-negative.cy.js,cypress/e2e/bookings-negative*.cy.js,cypress/e2e/security-sanity.cy.js,cypress/e2e/sla-metrics.cy.js"             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
+
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-${{ matrix.browser }}-shard-${{ matrix.index }}
+          name: cypress-${{ matrix.browser }}
           path: |
             cypress/screenshots
             cypress/videos

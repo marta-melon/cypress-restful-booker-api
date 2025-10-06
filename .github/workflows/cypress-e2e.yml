@@ -26,12 +26,34 @@ jobs:
       - name: Verify Cypress
         run: npx cypress verify
 
-      - name: Run Cypress (Electron headless)
+      - name: Check secrets presence (masked)
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          AUTH_USER: ${{ secrets.CYPRESS_USERNAME }}
+          AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD }}
+        run: |
+          if [ -z "$AUTH_USER" ] || [ -z "$AUTH_PASS" ]; then
+            echo "Secrets are NOT visible to this job. Ensure they are set at: Settings → Security → Secrets and variables → Actions → Secrets."
+            exit 1
+          else
+            echo "Secrets are present (values masked)."
+          fi
+
+      - name: Run Cypress (Electron headless) — with secrets
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           AUTH_USER: ${{ secrets.CYPRESS_USERNAME }}
           AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD }}
         run: |
           npx cypress run --headless --browser electron --spec "cypress/e2e/**/*.cy.js"             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
+
+      # Optional fallback for PRs from forks (secrets are not exposed by GitHub for security):
+      # Run only specs that do not require secrets.
+      - name: Run Cypress (no-secrets subset for fork PRs)
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          echo "Running subset of specs without secrets (fork PR)."
+          npx cypress run --headless --browser electron             --spec "cypress/e2e/auth-negative.cy.js,cypress/e2e/bookings-negative*.cy.js,cypress/e2e/security-sanity.cy.js,cypress/e2e/sla-metrics.cy.js"             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
 
       - name: Upload artifacts (screenshots/videos/results)
         if: always()
