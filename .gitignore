@@ -5,3 +5,5 @@ cypress/screenshots
 cypress/videos
 *.log
 cypress.env.json
+cypress.env.json
+cypress.env.json.zip
