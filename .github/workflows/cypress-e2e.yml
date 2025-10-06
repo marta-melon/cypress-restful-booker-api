@@ -11,6 +11,9 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
 
+    # Jeśli masz Environment Secrets (np. środowisko 'ci'), odkomentuj:
+    # environment: ci
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,33 +30,45 @@ jobs:
         run: npx cypress verify
 
       - name: Check secrets presence (masked)
+        # Skip dla PR z forka (sekrety nie są udostępniane przez GitHub)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         env:
-          AUTH_USER: ${{ secrets.CYPRESS_USERNAME }}
-          AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD }}
+          # Akceptuj Secrets LUB Variables; akceptuj obie konwencje nazw.
+          AUTH_USER: ${{ secrets.CYPRESS_USERNAME || secrets.AUTH_USER || vars.CYPRESS_USERNAME || vars.AUTH_USER }}
+          AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD || secrets.AUTH_PASS || vars.CYPRESS_PASSWORD || vars.AUTH_PASS }}
         run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
           if [ -z "$AUTH_USER" ] || [ -z "$AUTH_PASS" ]; then
-            echo "Secrets are NOT visible to this job. Ensure they are set at: Settings → Security → Secrets and variables → Actions → Secrets."
+            echo "::error::Secrets/variables are NOT visible to this job."
+            echo "Fix:"
+            echo "  1) Add repository *Secrets*: CYPRESS_USERNAME, CYPRESS_PASSWORD"
+            echo "     Settings → Security → Secrets and variables → Actions → New repository secret"
+            echo "  2) If you created *Variables* instead: ok, this workflow also accepts vars (vars.*)."
+            echo "  3) If you used *Environment* secrets: set 'environment: <name>' for this job."
+            echo "  4) For PRs from forks: secrets are NOT exposed by GitHub (run on push or same-repo PR)."
             exit 1
           else
-            echo "Secrets are present (values masked)."
+            echo "Secrets/variables are present (values are masked)."
           fi
 
       - name: Run Cypress (Electron headless) — with secrets
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         env:
-          AUTH_USER: ${{ secrets.CYPRESS_USERNAME }}
-          AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD }}
+          AUTH_USER: ${{ secrets.CYPRESS_USERNAME || secrets.AUTH_USER || vars.CYPRESS_USERNAME || vars.AUTH_USER }}
+          AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD || secrets.AUTH_PASS || vars.CYPRESS_PASSWORD || vars.AUTH_PASS }}
         run: |
-          npx cypress run --headless --browser electron --spec "cypress/e2e/**/*.cy.js"             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
+          npx cypress run --headless --browser electron --spec "cypress/e2e/**/*.cy.js" \
+            --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
 
-      # Optional fallback for PRs from forks (secrets are not exposed by GitHub for security):
-      # Run only specs that do not require secrets.
+      # Fallback: dla PR z forka odpalamy subset bez sekretów.
       - name: Run Cypress (no-secrets subset for fork PRs)
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
-          echo "Running subset of specs without secrets (fork PR)."
-          npx cypress run --headless --browser electron             --spec "cypress/e2e/auth-negative.cy.js,cypress/e2e/bookings-negative*.cy.js,cypress/e2e/security-sanity.cy.js,cypress/e2e/sla-metrics.cy.js"             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
+          echo "Running subset without secrets (fork PR)."
+          npx cypress run --headless --browser electron \
+            --spec "cypress/e2e/auth-negative.cy.js,cypress/e2e/bookings-negative*.cy.js,cypress/e2e/security-sanity.cy.js,cypress/e2e/sla-metrics.cy.js" \
+            --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
 
       - name: Upload artifacts (screenshots/videos/results)
         if: always()
