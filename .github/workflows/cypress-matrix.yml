@@ -14,7 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         browser: [electron, chrome]
-        index: [1]
+
+    # Jeśli masz Environment Secrets (np. 'ci'), odkomentuj:
+    # environment: ci
 
     steps:
       - name: Checkout
@@ -31,17 +33,47 @@ jobs:
       - name: Verify Cypress
         run: npx cypress verify
 
-      - name: Run Cypress
+      - name: Check secrets presence (masked)
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          AUTH_USER: ${{ secrets.CYPRESS_USERNAME || secrets.AUTH_USER || vars.CYPRESS_USERNAME || vars.AUTH_USER }}
+          AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD || secrets.AUTH_PASS || vars.CYPRESS_PASSWORD || vars.AUTH_PASS }}
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+          if [ -z "$AUTH_USER" ] || [ -z "$AUTH_PASS" ]; then
+            echo "::error::Secrets/variables are NOT visible to this job."
+            echo "See same checklist as in cypress-e2e.yml."
+            exit 1
+          else
+            echo "Secrets/variables are present (masked)."
+          fi
+
+      - name: Run Cypress — with secrets
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          BROWSER: ${{ matrix.browser }}
+          AUTH_USER: ${{ secrets.CYPRESS_USERNAME || secrets.AUTH_USER || vars.CYPRESS_USERNAME || vars.AUTH_USER }}
+          AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD || secrets.AUTH_PASS || vars.CYPRESS_PASSWORD || vars.AUTH_PASS }}
+        run: |
+          npx cypress run --headless --browser "$BROWSER" \
+            --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
+
+      - name: Run Cypress (no-secrets subset for fork PRs)
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         env:
           BROWSER: ${{ matrix.browser }}
         run: |
-          npx cypress run --headless --browser "$BROWSER"             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
+          echo "Running subset without secrets (fork PR)."
+          npx cypress run --headless --browser "$BROWSER" \
+            --spec "cypress/e2e/auth-negative.cy.js,cypress/e2e/bookings-negative*.cy.js,cypress/e2e/security-sanity.cy.js,cypress/e2e/sla-metrics.cy.js" \
+            --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
 
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-${{ matrix.browser }}-shard-${{ matrix.index }}
+          name: cypress-${{ matrix.browser }}
           path: |
             cypress/screenshots
             cypress/videos

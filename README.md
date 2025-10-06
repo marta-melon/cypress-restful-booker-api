@@ -29,7 +29,7 @@ package.json
 npm ci
 npm run lint
 npm run format
-npm test
+npx cypress run --env AUTH_USER=admin,AUTH_PASS=password123
 ```
 
 ### Base URL

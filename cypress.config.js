@@ -7,32 +7,30 @@ export default defineConfig({
     baseUrl: "https://restful-booker.herokuapp.com",
     supportFile: "cypress/support/e2e.js",
     setupNodeEvents(on, config) {
+      // Map CI/process env -> Cypress.env so tests can read via Cypress.env("AUTH_USER"/"AUTH_PASS")
+      config.env = {
+        ...config.env,
+        AUTH_USER: process.env.AUTH_USER ?? (config.env && config.env.AUTH_USER),
+        AUTH_PASS: process.env.AUTH_PASS ?? (config.env && config.env.AUTH_PASS),
+      };
+
+      // Task used by SLA test to append CSV rows
       on("task", {
-        metrics_appendCsv(payload) {
-          try {
-            const file = String(
-              payload && payload.file ? payload.file : "metrics.csv",
-            );
-            const line = String(payload && payload.line ? payload.line : "");
-            const dir = path.join(process.cwd(), "results");
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            fs.appendFileSync(
-              path.join(dir, file),
-              line.endsWith("\n") ? line : line + "\n",
-              "utf8",
-            );
-            return null;
-          } catch (e) {
-            console.error("metrics_appendCsv failed", e);
-            return null;
-          }
+        metrics_appendCsv({ file, row }) {
+          const projectRoot = config.projectRoot || process.cwd();
+          const filePath = path.isAbsolute(file) ? file : path.join(projectRoot, file);
+          fs.mkdirSync(path.dirname(filePath), { recursive: true });
+          fs.appendFileSync(filePath, String(row) + "\n", "utf8");
+          return null;
         },
       });
+
       return config;
     },
-    env: {
-      SLA_P95_GET: 1500,
-    },
+  },
+  env: {
+    // Example SLA threshold; override via env if chcesz
+    SLA_P95_GET: 1500,
   },
   reporter: "junit",
   reporterOptions: {
