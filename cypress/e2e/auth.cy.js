@@ -11,14 +11,15 @@ describe("Auth", () => {
     const password = Cypress.env("AUTH_PASS");
     if (!username || !password) {
       throw new Error(
-        "AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets."
+        "AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets.",
       );
     }
 
     // Authenticate and cache token
     return Api.auth({ username, password }).then((res) => {
       expect(res.status, "auth status").to.be.oneOf([200, 201]);
-      expect(res.body && res.body.token, "auth token").to.be.a("string").and.not.be.empty;
+      expect(res.body && res.body.token, "auth token").to.be.a("string").and.not
+        .be.empty;
       token = res.body.token;
     });
   });

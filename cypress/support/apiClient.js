@@ -5,7 +5,10 @@ export const Api = {
     return cy.request({
       method: "POST",
       url: "/auth",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: { username, password },
       failOnStatusCode: false,
     });
@@ -33,7 +36,10 @@ export const Api = {
     return cy.request({
       method: "POST",
       url: "/booking",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body,
       failOnStatusCode: false,
     });

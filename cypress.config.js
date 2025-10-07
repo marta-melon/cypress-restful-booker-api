@@ -10,15 +10,19 @@ export default defineConfig({
       // Map CI/process env -> Cypress.env so tests can read via Cypress.env("AUTH_USER"/"AUTH_PASS")
       config.env = {
         ...config.env,
-        AUTH_USER: process.env.AUTH_USER ?? (config.env && config.env.AUTH_USER),
-        AUTH_PASS: process.env.AUTH_PASS ?? (config.env && config.env.AUTH_PASS),
+        AUTH_USER:
+          process.env.AUTH_USER ?? (config.env && config.env.AUTH_USER),
+        AUTH_PASS:
+          process.env.AUTH_PASS ?? (config.env && config.env.AUTH_PASS),
       };
 
       // Task used by SLA test to append CSV rows
       on("task", {
         metrics_appendCsv({ file, row }) {
           const projectRoot = config.projectRoot || process.cwd();
-          const filePath = path.isAbsolute(file) ? file : path.join(projectRoot, file);
+          const filePath = path.isAbsolute(file)
+            ? file
+            : path.join(projectRoot, file);
           fs.mkdirSync(path.dirname(filePath), { recursive: true });
           fs.appendFileSync(filePath, String(row) + "\n", "utf8");
           return null;

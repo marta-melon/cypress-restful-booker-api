@@ -19,19 +19,22 @@ describe(
       // Fail fast if credentials are missing.
       if (!username || !password) {
         throw new Error(
-          "AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets."
+          "AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets.",
         );
       }
 
       // Authenticate and cache token
       Api.auth({ username, password }).then((res) => {
         expect(res.status, "auth status").to.be.oneOf([200, 201]);
-        expect(res.body && res.body.token, "auth token").to.be.a("string").and.not.be.empty;
+        expect(res.body && res.body.token, "auth token").to.be.a("string").and
+          .not.be.empty;
         token = res.body.token;
       });
 
       // Load base payload template used across tests
-      cy.fixture("data/booking-templates").then((fx) => (baseTemplate = fx.base));
+      cy.fixture("data/booking-templates").then(
+        (fx) => (baseTemplate = fx.base),
+      );
     });
 
     it("creates a booking (POST)", () => {
@@ -39,7 +42,13 @@ describe(
         const t0 = performance.now();
         Api.create(fx.base).then((res) => {
           const dt = performance.now() - t0;
-          cy.recordMetric("create-booking.csv", "POST", "/booking", dt, res.status);
+          cy.recordMetric(
+            "create-booking.csv",
+            "POST",
+            "/booking",
+            dt,
+            res.status,
+          );
 
           expect(res.status).to.be.oneOf([200, 201]);
           expect(res.body, "create body").to.have.property("bookingid");
@@ -51,7 +60,9 @@ describe(
 
     it("reads the created booking (GET)", () => {
       // Ensure we really have an id from the previous test
-      expect(createdId, "createdId should be set by POST test").to.be.a("number").and.greaterThan(0);
+      expect(createdId, "createdId should be set by POST test")
+        .to.be.a("number")
+        .and.greaterThan(0);
 
       Api.read(createdId).then((res) => {
         // Validate status first to avoid reading undefined properties
@@ -75,7 +86,13 @@ describe(
         const t0 = performance.now();
         Api.update(createdId, fx.update, token).then((res) => {
           const dt = performance.now() - t0;
-          cy.recordMetric("update-booking.csv", "PUT", `/booking/${createdId}`, dt, res.status);
+          cy.recordMetric(
+            "update-booking.csv",
+            "PUT",
+            `/booking/${createdId}`,
+            dt,
+            res.status,
+          );
 
           expect(res.status).to.be.oneOf([200, 201]);
           expect(res.body).to.include({
@@ -107,7 +124,13 @@ describe(
         failOnStatusCode: false,
       }).then((res) => {
         const dt = performance.now() - t0;
-        cy.recordMetric("patch-booking.csv", "PATCH", `/booking/${createdId}`, dt, res.status);
+        cy.recordMetric(
+          "patch-booking.csv",
+          "PATCH",
+          `/booking/${createdId}`,
+          dt,
+          res.status,
+        );
 
         expect(res.status).to.be.oneOf([200, 201]);
         expect(res.body).to.have.property("additionalneeds", "Dinner");
@@ -118,7 +141,13 @@ describe(
       const t0 = performance.now();
       Api.remove(createdId, token).then((res) => {
         const dt = performance.now() - t0;
-        cy.recordMetric("delete-booking.csv", "DELETE", `/booking/${createdId}`, dt, res.status);
+        cy.recordMetric(
+          "delete-booking.csv",
+          "DELETE",
+          `/booking/${createdId}`,
+          dt,
+          res.status,
+        );
 
         expect(res.status).to.be.oneOf([200, 201, 204]);
       });
@@ -130,5 +159,5 @@ describe(
         Api.remove(createdId, token);
       }
     });
-  }
+  },
 );
