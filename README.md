@@ -1,70 +1,59 @@
-# Cypress API – Restful Booker
+# Cypress Restful Booker API — E2E tests
 
-Lean Cypress project validating **Restful Booker** API end-to-end: authentication, booking CRUD (positive & negative), schema contracts, SLA probes and basic security checks.
-
-## Highlights
-
-- **Auth** token flow and protected endpoints  
-- **CRUD** coverage for `/booking` with negative matrix  
-- **AJV**-based **JSON schema** validation  
-- **SLA probe** (`p95`) for `GET /booking` across samples  
-- **Security sanity** (headers, content type)  
-
-
-## Structure
-
+## Project structure (high-level)
 ```
 cypress/
   e2e/                  # auth, bookings-crud, negative, security, sla
   fixtures/             # payload templates
-  schemas/              # JSON schemas for contract tests
+  schemas/              # JSON Schemas (optional validation)
   support/              # api client & helpers
-cypress.config.js       # Cypress config (ESM, JS-only)
+cypress.config.js
 package.json
 ```
+> Note: the repo may contain additional dotfiles (linters, editor settings, CI workflows).
 
-## Run
-
+## Running locally
+### 1) Provide credentials (do **not** commit these)
+Either via env…
 ```bash
-npm ci
-npm run lint
-npm run format
+# bash
+export AUTH_USER=admin AUTH_PASS=password123
+npx cypress run
+```
+…or via CLI flag…
+```bash
 npx cypress run --env AUTH_USER=admin,AUTH_PASS=password123
 ```
+…or create `cypress.env.json` (gitignored):
+```json
+{ "AUTH_USER": "admin", "AUTH_PASS": "password123" }
+```
 
-### Base URL
-
-Defaults to `https://restful-booker.herokuapp.com`.  
-Override if needed:
-
+### 2) Full headless run
 ```bash
-BOOKER_BASE_URL=http://localhost:3001 npm test
+npm test
+# or
+npx cypress run --headless --browser electron --spec "cypress/e2e/**/*.cy.js"
 ```
 
-## Metrics
+## CI — GitHub Actions
+Add repository **Secrets** (Settings → Security → Secrets and variables → Actions → Secrets):
+- `CYPRESS_USERNAME` → e.g. `admin`
+- `CYPRESS_PASSWORD` → e.g. `password123`
 
-Performance metrics and SLA samples are written as CSV lines into `results/`.
+Workflows map them to `AUTH_USER`/`AUTH_PASS` env, and `cypress.config.js` exposes them as `Cypress.env(...)` for tests.
 
-Example usage inside tests:
+For PRs from forks, GitHub does **not** expose secrets — the workflow falls back to a subset of specs that do not require auth.
 
-```js
-cy.task('metrics_appendCsv', { line: `GET,/booking,${p95}` })
-```
+## Scripts
+- `npm test` — headless run (Electron)
+- `npm run test:gui` — open Cypress runner
+- `npm run format` — Prettier write (optional)
 
-Optionally specify a custom file:
+## Reports & metrics
+- JUnit XML goes to `results/`
+- SLA test uses `cy.task("metrics_appendCsv")` to append CSV rows; destination file lives under repo root (task creates folders).
 
-```js
-cy.task('metrics_appendCsv', { file: 'sla.csv', line: `GET,/booking,${p95}` })
-```
-
-If `file` is omitted, output defaults to `results/metrics.csv`.
-
-## Outputs
-
-- Cypress request/response logs  
-- Optional JUnit/JSON reports for CI pipelines  
-- CSV performance metrics under `results/`  
-
-## What these tests ensure
-
-Confidence that core **API contracts**, **business rules**, and **performance SLAs** remain stable — catching regressions early in both functionality and response times.
+## Notes
+- Protected operations (PUT/PATCH/DELETE on `/booking/:id`) require `Cookie: token=<value>` header; token is returned by `POST /auth`.
+- No hard-coded credentials in sources — use env/Secrets only.

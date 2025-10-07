@@ -1,9 +1,14 @@
-node_modules
-.DS_Store
-results
-cypress/screenshots
-cypress/videos
-*.log
-cypress.env.json
+# Local env files (never commit)
 cypress.env.json
 cypress.env.json.zip
+*.zip
+
+# Cypress artifacts
+cypress/screenshots/
+cypress/videos/
+results/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
