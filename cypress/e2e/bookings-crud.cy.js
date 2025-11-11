@@ -13,25 +13,10 @@ describe(
     let baseTemplate;
 
     before(() => {
-      // Read credentials strictly from env. Never keep fallbacks in code.
-      const username = Cypress.env("AUTH_USER");
-      const password = Cypress.env("AUTH_PASS");
-      // Fail fast if credentials are missing.
-      if (!username || !password) {
-        throw new Error(
-          "AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets.",
-        );
-      }
-
-      // Authenticate and cache token
-      Api.auth({ username, password }).then((res) => {
-        expect(res.status, "auth status").to.be.oneOf([200, 201]);
-        expect(res.body && res.body.token, "auth token").to.be.a("string").and
-          .not.be.empty;
-        token = res.body.token;
+      Api.getToken().then( (result) => {
+        token = result
       });
 
-      // Load base payload template used across tests
       cy.fixture("data/booking-templates").then(
         (fx) => (baseTemplate = fx.base),
       );
@@ -52,6 +37,9 @@ describe(
 
           expect(res.status).to.be.oneOf([200, 201]);
           expect(res.body, "create body").to.have.property("bookingid");
+
+          cy.assertSchema( res.body, "bookingCreate" );
+
           createdId = res.body.bookingid;
           expect(createdId, "createdId").to.be.a("number").and.greaterThan(0);
         });
@@ -68,6 +56,8 @@ describe(
         // Validate status first to avoid reading undefined properties
         expect(res.status, "GET /booking/:id status").to.eq(200);
         expect(res.body, "GET /booking/:id body").to.be.an("object");
+
+        cy.assertSchema( res.body, "booking" );
 
         // Compare with template we used for creation
         expect(res.body).to.include({
@@ -94,7 +84,11 @@ describe(
             res.status,
           );
 
+
           expect(res.status).to.be.oneOf([200, 201]);
+
+          cy.assertSchema( res.body, "booking" );
+
           expect(res.body).to.include({
             firstname: fx.update.firstname,
             lastname: fx.update.lastname,
@@ -108,21 +102,9 @@ describe(
     });
 
     it("partially updates the booking (PATCH)", () => {
-      // Some apiClient versions lack a 'patch' method. Use cy.request() directly to avoid wrapper mismatch.
       const patch = { additionalneeds: "Dinner" };
       const t0 = performance.now();
-      cy.request({
-        method: "PATCH",
-        url: `/booking/${createdId}`,
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          // Restful Booker expects auth token in Cookie header for protected endpoints
-          Cookie: `token=${token}`,
-        },
-        body: patch,
-        failOnStatusCode: false,
-      }).then((res) => {
+      Api.patch( createdId, patch, token ).then((res) => {
         const dt = performance.now() - t0;
         cy.recordMetric(
           "patch-booking.csv",
@@ -148,7 +130,6 @@ describe(
           dt,
           res.status,
         );
-
         expect(res.status).to.be.oneOf([200, 201, 204]);
       });
     });

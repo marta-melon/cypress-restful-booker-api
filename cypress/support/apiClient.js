@@ -1,4 +1,4 @@
-// Lightweight API client used by tests. Comments in English.
+// Lightweight API client used by tests.
 
 export const Api = {
   auth({ username, password }) {
@@ -60,7 +60,6 @@ export const Api = {
     });
   },
 
-  // NEW: partial update helper (PATCH) — previously missing in the wrapper.
   patch(id, body, token) {
     return cy.request({
       method: "PATCH",
@@ -86,4 +85,26 @@ export const Api = {
       failOnStatusCode: false,
     });
   },
+
+  getToken() {
+      // Read credentials strictly from env. Never keep fallbacks in code.
+      const username = Cypress.env("AUTH_USER");
+      const password = Cypress.env("AUTH_PASS");
+
+      // Fail fast if credentials are missing.
+      if (!username || !password) {
+        throw new Error(
+          "AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets.",
+        );
+      }
+
+      // Authenticate and cache token
+      return Api.auth({username, password})
+      .then((res) => {
+        expect(res.status, "auth status").to.be.oneOf([200, 201]);
+        expect(res.body && res.body.token, "auth token").to.be.a("string").and.not.be.empty;
+        const token = res.body.token;
+        return token;
+      });
+  }
 };

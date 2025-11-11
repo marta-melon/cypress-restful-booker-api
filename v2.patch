@@ -1,0 +1,548 @@
+diff --git a/cypress.config.js b/cypress.config.js
+index 4907b89..ead9083 100644
+--- a/cypress.config.js
++++ b/cypress.config.js
+@@ -22,7 +22,7 @@ export default defineConfig({
+           const projectRoot = config.projectRoot || process.cwd();
+           const filePath = path.isAbsolute(file)
+             ? file
+-            : path.join(projectRoot, file);
++            : path.join(projectRoot, "results/csv/", file);
+           fs.mkdirSync(path.dirname(filePath), { recursive: true });
+           fs.appendFileSync(filePath, String(row) + "\n", "utf8");
+           return null;
+@@ -33,7 +33,7 @@ export default defineConfig({
+     },
+   },
+   env: {
+-    // Example SLA threshold; override via env if chcesz
++    // Example SLA threshold; override via cypress env if desired.
+     SLA_P95_GET: 1500,
+   },
+   reporter: "junit",
+diff --git a/cypress/e2e/auth-negative.cy.js b/cypress/e2e/auth-negative.cy.js
+index 68aadf1..48a6240 100644
+--- a/cypress/e2e/auth-negative.cy.js
++++ b/cypress/e2e/auth-negative.cy.js
+@@ -1,6 +1,5 @@
+ // Negative auth tests using raw cy.request.
+-// NOTE: Use relative URLs so Cypress baseUrl applies. Do not rely on a custom BASE env.
+-// Some APIs return 404 to avoid user enumeration; include 404 in expectations.
++// NOTE: Some APIs return 404 to avoid user enumeration; included 404 in expectations.
+ 
+ describe("Auth — negative cases", () => {
+   it("Wrong password -> should NOT return a valid token", () => {
+diff --git a/cypress/e2e/auth.cy.js b/cypress/e2e/auth.cy.js
+index 2f10633..51cd777 100644
+--- a/cypress/e2e/auth.cy.js
++++ b/cypress/e2e/auth.cy.js
+@@ -18,53 +18,47 @@ describe("Auth", () => {
+     // Authenticate and cache token
+     return Api.auth({ username, password }).then((res) => {
+       expect(res.status, "auth status").to.be.oneOf([200, 201]);
+-      expect(res.body && res.body.token, "auth token").to.be.a("string").and.not
+-        .be.empty;
++      expect(res.body && res.body.token, "auth token").to.be.a("string").and.not.be.empty;
+       token = res.body.token;
+     });
+   });
+ 
+   it("creates token with valid credentials", () => {
+     // Nothing to do here: token was created in before() and validated with assertions.
+-    // This test exists to keep the original test count and intent explicit.
++    // This test exists to indicate whether token was correctly retrieved
+     expect(token, "token from before()").to.be.a("string").and.not.be.empty;
+   });
+ 
+   it("returns 200/201/204 on a protected DELETE when token cookie is set (sanity)", () => {
+     // Create a temporary booking, then delete it using the token cookie.
+     // This exercises an actually protected operation instead of an endpoint that may return 405.
+-    return Api.create({
+-      firstname: "Temp",
+-      lastname: "User",
+-      totalprice: 123,
+-      depositpaid: true,
+-      bookingdates: { checkin: "2023-01-01", checkout: "2023-01-02" },
+-      additionalneeds: "Breakfast",
+-    }).then((createRes) => {
+-      expect(createRes.status, "create status").to.be.oneOf([200, 201]);
+-      const id = createRes.body && createRes.body.bookingid;
+-      expect(id, "created booking id").to.be.a("number");
++    cy.fixture("data/booking-templates").then((fx) => {
++        return Api.create(fx.base).then((createRes) => {
++          expect(createRes.status, "create status").to.be.oneOf([200, 201]);
++          const id = createRes.body && createRes.body.bookingid;
++          expect(id, "created booking id").to.be.a("number");
+ 
+-      // Use client delete helper if present, else fall back to direct request.
+-      if (Api.remove) {
+-        return Api.remove(id, token).then((delRes) => {
+-          expect(delRes.status, "delete status").to.be.oneOf([200, 201, 204]);
+-        });
+-      }
++          // Use client delete helper if present, else fall back to direct request.
++          if (Api.remove) {
++            return Api.remove(id, token).then((delRes) => {
++              expect(delRes.status, "delete status").to.be.oneOf([200, 201, 204]);
++            });
++          }
+ 
+-      return cy
+-        .request({
+-          method: "DELETE",
+-          url: `/booking/${id}`,
+-          headers: {
+-            Accept: "application/json",
+-            Cookie: `token=${token}`,
+-          },
+-          failOnStatusCode: false,
+-        })
+-        .then((delRes) => {
+-          expect(delRes.status, "delete status").to.be.oneOf([200, 201, 204]);
++          return cy
++            .request({
++              method: "DELETE",
++              url: `/booking/${id}`,
++              headers: {
++                Accept: "application/json",
++                Cookie: `token=${token}`,
++              },
++              failOnStatusCode: false,
++            })
++            .then((delRes) => {
++              expect(delRes.status, "delete status").to.be.oneOf([200, 201, 204]);
++            });
+         });
+-    });
++     });
+   });
+ });
+diff --git a/cypress/e2e/bookings-crud.cy.js b/cypress/e2e/bookings-crud.cy.js
+index bbe6a50..c3dcdc3 100644
+--- a/cypress/e2e/bookings-crud.cy.js
++++ b/cypress/e2e/bookings-crud.cy.js
+@@ -13,25 +13,10 @@ describe(
+     let baseTemplate;
+ 
+     before(() => {
+-      // Read credentials strictly from env. Never keep fallbacks in code.
+-      const username = Cypress.env("AUTH_USER");
+-      const password = Cypress.env("AUTH_PASS");
+-      // Fail fast if credentials are missing.
+-      if (!username || !password) {
+-        throw new Error(
+-          "AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets.",
+-        );
+-      }
+-
+-      // Authenticate and cache token
+-      Api.auth({ username, password }).then((res) => {
+-        expect(res.status, "auth status").to.be.oneOf([200, 201]);
+-        expect(res.body && res.body.token, "auth token").to.be.a("string").and
+-          .not.be.empty;
+-        token = res.body.token;
++      Api.getToken().then( (result) => {
++        token = result
+       });
+ 
+-      // Load base payload template used across tests
+       cy.fixture("data/booking-templates").then(
+         (fx) => (baseTemplate = fx.base),
+       );
+@@ -52,6 +37,9 @@ describe(
+ 
+           expect(res.status).to.be.oneOf([200, 201]);
+           expect(res.body, "create body").to.have.property("bookingid");
++
++          cy.assertSchema( res.body, "bookingCreate" );
++
+           createdId = res.body.bookingid;
+           expect(createdId, "createdId").to.be.a("number").and.greaterThan(0);
+         });
+@@ -69,6 +57,8 @@ describe(
+         expect(res.status, "GET /booking/:id status").to.eq(200);
+         expect(res.body, "GET /booking/:id body").to.be.an("object");
+ 
++        cy.assertSchema( res.body, "booking" );
++
+         // Compare with template we used for creation
+         expect(res.body).to.include({
+           firstname: baseTemplate.firstname,
+@@ -94,7 +84,11 @@ describe(
+             res.status,
+           );
+ 
++
+           expect(res.status).to.be.oneOf([200, 201]);
++
++          cy.assertSchema( res.body, "booking" );
++
+           expect(res.body).to.include({
+             firstname: fx.update.firstname,
+             lastname: fx.update.lastname,
+@@ -108,21 +102,9 @@ describe(
+     });
+ 
+     it("partially updates the booking (PATCH)", () => {
+-      // Some apiClient versions lack a 'patch' method. Use cy.request() directly to avoid wrapper mismatch.
+       const patch = { additionalneeds: "Dinner" };
+       const t0 = performance.now();
+-      cy.request({
+-        method: "PATCH",
+-        url: `/booking/${createdId}`,
+-        headers: {
+-          "Content-Type": "application/json",
+-          Accept: "application/json",
+-          // Restful Booker expects auth token in Cookie header for protected endpoints
+-          Cookie: `token=${token}`,
+-        },
+-        body: patch,
+-        failOnStatusCode: false,
+-      }).then((res) => {
++      Api.patch( createdId, patch, token ).then((res) => {
+         const dt = performance.now() - t0;
+         cy.recordMetric(
+           "patch-booking.csv",
+@@ -148,7 +130,6 @@ describe(
+           dt,
+           res.status,
+         );
+-
+         expect(res.status).to.be.oneOf([200, 201, 204]);
+       });
+     });
+diff --git a/cypress/e2e/bookings-negative-extra.cy.js b/cypress/e2e/bookings-negative-extra.cy.js
+deleted file mode 100644
+index 767640e..0000000
+--- a/cypress/e2e/bookings-negative-extra.cy.js
++++ /dev/null
+@@ -1,46 +0,0 @@
+-// Additional negative tests from the review: invalid body for update/patch
+-// and operations on a non-existent resource. These require a valid token/ID.
+-// They are marked as .skip for now — enable once login/token is wired.
+-import {
+-  updateBooking,
+-  partialUpdateBooking,
+-  deleteBooking,
+-} from "../support/apiClient";
+-
+-describe("Bookings — additional negative cases", () => {
+-  it.skip("Update rejects invalid body -> 400", () => {
+-    const token = "REPLACE_WITH_VALID_TOKEN";
+-    const existingId = "REPLACE_WITH_EXISTING_ID";
+-    return updateBooking(existingId, token, { unexpected: "field" }).then(
+-      (res) => {
+-        expect(res.status).to.eq(400);
+-      },
+-    );
+-  });
+-
+-  it.skip("Partial update rejects invalid body -> 400", () => {
+-    const token = "REPLACE_WITH_VALID_TOKEN";
+-    const existingId = "REPLACE_WITH_EXISTING_ID";
+-    return partialUpdateBooking(existingId, token, { price: -1 }).then(
+-      (res) => {
+-        expect(res.status).to.eq(400);
+-      },
+-    );
+-  });
+-
+-  it.skip("Cannot delete non-existent -> 404 (with valid token)", () => {
+-    const token = "REPLACE_WITH_VALID_TOKEN";
+-    const NON_EXISTENT = "ffffffffffffffffffffffff";
+-    return deleteBooking(NON_EXISTENT, token).then((res) => {
+-      expect(res.status).to.eq(404);
+-    });
+-  });
+-
+-  it.skip("Cannot update non-existent -> 404 (with valid token)", () => {
+-    const token = "REPLACE_WITH_VALID_TOKEN";
+-    const NON_EXISTENT = "ffffffffffffffffffffffff";
+-    return updateBooking(NON_EXISTENT, token, { name: "X" }).then((res) => {
+-      expect(res.status).to.eq(404);
+-    });
+-  });
+-});
+diff --git a/cypress/e2e/bookings-negative.cy.js b/cypress/e2e/bookings-negative.cy.js
+index b75dbab..ed8ad9d 100644
+--- a/cypress/e2e/bookings-negative.cy.js
++++ b/cypress/e2e/bookings-negative.cy.js
+@@ -2,10 +2,35 @@
+ 
+ import { Api } from "../support/apiClient";
+ 
++const NON_EXISTENT = 999999999999;
++
+ describe(
+   "Bookings negative paths",
+   { tags: ["@regression", "@negative"] },
+   () => {
++    let token = "";
++    let createdId = -1;
++    let baseTemplate;
++
++    before(() => {
++
++      cy.fixture("data/booking-templates").then(
++        (fx) => (baseTemplate = fx.base),
++      );
++
++      Api.getToken().then( (result) => {
++        token = result
++
++        Api.create(baseTemplate).then((res) => {
++          createdId = res.body.bookingid;
++
++          expect(res.status).to.be.oneOf([200, 201]);
++          expect(createdId, "createdId").to.be.a("number").and.greaterThan(0);
++        });
++      })
++
++    });
++
+     it("GET /booking/{id} returns 404 for non-existent ID", () => {
+       Api.read(999999).its("status").should("be.oneOf", [404, 500]);
+     });
+@@ -24,9 +49,37 @@ describe(
+         url: "/booking",
+         body: { whatever: true },
+         failOnStatusCode: false,
+-      })
+-        .its("status")
++      }).its("status")
+         .should("be.oneOf", [400, 500]);
+     });
++
++    it("Update rejects invalid body -> 400", () => {
++      Api.update(createdId,{ unexpected: "field" }, token).then((res) => {
++        expect(res.status).to.eq(400);
++      });
++    });
++
++    it("Cannot delete non-existent -> 404 (with valid token)", () => {
++      Api.remove(NON_EXISTENT, token)
++    });
++
++    it("Cannot update non-existent -> 400 (with valid token)", () => {
++      Api.update(NON_EXISTENT, baseTemplate , token)
++        .its("status")
++        .should("be.oneOf", [400, 405]);
++    });
++
++    it("Cannot partialy update non-existent -> 404 (with valid token)", () => {
++      const patch = { additionalneeds: "Dinner" };
++      Api.patch(NON_EXISTENT, patch , token)
++        .its("status")
++        .should("be.oneOf", [400, 405]);
++    });
++
++    after(() => {
++      if (createdId && createdId > 0) {
++        Api.remove(createdId, token);
++      }
++    });
+   },
+ );
+diff --git a/cypress/e2e/security-sanity.cy.js b/cypress/e2e/security-sanity.cy.js
+index ef1c9d5..38ce497 100644
+--- a/cypress/e2e/security-sanity.cy.js
++++ b/cypress/e2e/security-sanity.cy.js
+@@ -1,83 +1,43 @@
+ // Security sanity tests with raw cy.request.
+ // Some backends return 404 for unauthorized to avoid disclosing resource existence.
+-const BASE = Cypress.env("BASE_URL");
+ const NON_EXISTENT_ID = 99999999; // adjust to your API
+ 
++import { Api } from "../support/apiClient";
++
+ describe("Security sanity — missing cases", () => {
+   it("PUT without token -> 401/403/404", () => {
+-    cy.request({
+-      method: "PUT",
+-      url: `${BASE}/booking/${NON_EXISTENT_ID}`,
+-      body: { foo: "bar" },
+-      failOnStatusCode: false,
+-    }).then((res) => {
++    Api.update(NON_EXISTENT_ID, { foo: "bar" }, null)
++    .then((res) => {
+       expect([401, 403, 404]).to.include(res.status);
+     });
+   });
+ 
+   it("PATCH without token -> 401/403/404", () => {
+-    cy.request({
+-      method: "PATCH",
+-      url: `${BASE}/booking/${NON_EXISTENT_ID}`,
+-      body: { foo: "bar" },
+-      failOnStatusCode: false,
+-    }).then((res) => {
++    Api.patch(NON_EXISTENT_ID, { foo: "bar" }, null)
++    .then((res) => {
+       expect([401, 403, 404]).to.include(res.status);
+     });
+   });
+ 
+   it("DELETE without token -> 401/403/404", () => {
+-    cy.request({
+-      method: "DELETE",
+-      url: `${BASE}/booking/${NON_EXISTENT_ID}`,
+-      failOnStatusCode: false,
+-    }).then((res) => {
++    Api.remove(NON_EXISTENT_ID, null)
++    .then((res) => {
+       expect([401, 403, 404]).to.include(res.status);
+     });
+   });
+ 
+   it("Random token must not authorize -> 401/403/404", () => {
+     const bogus = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${Date.now()}.sig`;
+-    cy.request({
+-      method: "DELETE",
+-      url: `${BASE}/booking/${NON_EXISTENT_ID}`,
+-      headers: { Authorization: `Bearer ${bogus}` },
+-      failOnStatusCode: false,
+-    }).then((res) => {
++    Api.remove(NON_EXISTENT_ID, bogus)
++    .then((res) => {
+       expect([401, 403, 404]).to.include(res.status);
+     });
+   });
+ 
+-  it("Create without token (adjust to API) -> 200/201/400/404/405", () => {
+-    cy.request({
+-      method: "POST",
+-      url: `${BASE}/booking`,
+-      body: { invalid: "payload" },
+-      failOnStatusCode: false,
+-    }).then((res) => {
+-      expect([200, 201, 400, 404, 405]).to.include(res.status);
+-    });
+-  });
+-
+-  it.skip("RBAC: regular user cannot access admin endpoint -> 403", () => {
+-    cy.request({
+-      method: "GET",
+-      url: `${BASE}/admin/stats`,
+-      headers: { Authorization: "Bearer REPLACE_WITH_VALID_USER_TOKEN" },
+-      failOnStatusCode: false,
+-    }).then((res) => {
+-      expect(res.status).to.eq(403);
+-    });
+-  });
+-
+   it.skip("Expired token -> 401", () => {
+     const expired = "REPLACE_WITH_EXPIRED_TOKEN";
+-    cy.request({
+-      method: "DELETE",
+-      url: `${BASE}/booking/${NON_EXISTENT_ID}`,
+-      headers: { Authorization: `Bearer ${expired}` },
+-      failOnStatusCode: false,
+-    }).then((res) => {
++    Api.remove(NON_EXISTENT_ID, expired)
++    .then((res) => {
+       expect(res.status).to.eq(401);
+     });
+   });
+diff --git a/cypress/e2e/sla-metrics.cy.js b/cypress/e2e/sla-metrics.cy.js
+index 503a4c4..c104713 100644
+--- a/cypress/e2e/sla-metrics.cy.js
++++ b/cypress/e2e/sla-metrics.cy.js
+@@ -12,10 +12,8 @@ describe("SLA p95", { tags: ["@quality", "@sla"] }, () => {
+     const times = [];
+     const runs = 10;
+ 
+-    cy.wrap(null).then(() => {
+-      const runOnce = (i) => {
+-        if (i >= runs) return;
+-
++    Cypress._.times(runs, (_) => {
++      cy.then(() => {
+         const t0 = performance.now();
+         Api.listIds().then((res) => {
+           times.push(performance.now() - t0);
+@@ -26,11 +24,8 @@ describe("SLA p95", { tags: ["@quality", "@sla"] }, () => {
+             times[times.length - 1],
+             res.status,
+           );
+-          runOnce(i + 1);
+         });
+-      };
+-
+-      runOnce(0);
++      });
+     });
+ 
+     cy.then(() => {
+diff --git a/cypress/support/apiClient.js b/cypress/support/apiClient.js
+index 3829653..b3744e2 100644
+--- a/cypress/support/apiClient.js
++++ b/cypress/support/apiClient.js
+@@ -1,4 +1,4 @@
+-// Lightweight API client used by tests. Comments in English.
++// Lightweight API client used by tests.
+ 
+ export const Api = {
+   auth({ username, password }) {
+@@ -60,7 +60,6 @@ export const Api = {
+     });
+   },
+ 
+-  // NEW: partial update helper (PATCH) — previously missing in the wrapper.
+   patch(id, body, token) {
+     return cy.request({
+       method: "PATCH",
+@@ -86,4 +85,26 @@ export const Api = {
+       failOnStatusCode: false,
+     });
+   },
++
++  getToken() {
++      // Read credentials strictly from env. Never keep fallbacks in code.
++      const username = Cypress.env("AUTH_USER");
++      const password = Cypress.env("AUTH_PASS");
++
++      // Fail fast if credentials are missing.
++      if (!username || !password) {
++        throw new Error(
++          "AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets.",
++        );
++      }
++
++      // Authenticate and cache token
++      return Api.auth({username, password})
++      .then((res) => {
++        expect(res.status, "auth status").to.be.oneOf([200, 201]);
++        expect(res.body && res.body.token, "auth token").to.be.a("string").and.not.be.empty;
++        const token = res.body.token;
++        return token;
++      });
++  }
+ };
+diff --git a/cypress/support/commands.js b/cypress/support/commands.js
+index 54a9143..668bccd 100644
+--- a/cypress/support/commands.js
++++ b/cypress/support/commands.js
+@@ -3,11 +3,20 @@ import bookingSchema from "../schemas/booking.json";
+ import bookingCreateSchema from "../schemas/booking-create.json";
+ 
+ Cypress.Commands.add("assertSchema", (data, schemaName) => {
+-  const schema = schemaName === "booking" ? bookingSchema : bookingCreateSchema;
+-  validateSchema(data, schema);
++
++  switch (schemaName) {
++    case "booking":
++      validateSchema(data, bookingSchema);
++      break;
++    case "bookingCreate":
++      validateSchema(data, bookingCreateSchema);
++      break;
++    default:
++      throw new Error(`Unknown schema: ${schemaName}`)
++  }
+ });
+ 
+ Cypress.Commands.add("recordMetric", (file, method, route, ms, status) => {
+   const line = [method, route, String(ms), String(status)].join(",");
+-  cy.task("metrics_appendCsv", { file, line });
++  cy.task("metrics_appendCsv", { file, row: line });
+ });

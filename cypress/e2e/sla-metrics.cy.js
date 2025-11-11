@@ -12,10 +12,8 @@ describe("SLA p95", { tags: ["@quality", "@sla"] }, () => {
     const times = [];
     const runs = 10;
 
-    cy.wrap(null).then(() => {
-      const runOnce = (i) => {
-        if (i >= runs) return;
-
+    Cypress._.times(runs, (_) => {
+      cy.then(() => {
         const t0 = performance.now();
         Api.listIds().then((res) => {
           times.push(performance.now() - t0);
@@ -26,11 +24,8 @@ describe("SLA p95", { tags: ["@quality", "@sla"] }, () => {
             times[times.length - 1],
             res.status,
           );
-          runOnce(i + 1);
         });
-      };
-
-      runOnce(0);
+      });
     });
 
     cy.then(() => {

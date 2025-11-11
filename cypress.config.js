@@ -22,7 +22,7 @@ export default defineConfig({
           const projectRoot = config.projectRoot || process.cwd();
           const filePath = path.isAbsolute(file)
             ? file
-            : path.join(projectRoot, file);
+            : path.join(projectRoot, "results/csv/", file);
           fs.mkdirSync(path.dirname(filePath), { recursive: true });
           fs.appendFileSync(filePath, String(row) + "\n", "utf8");
           return null;
@@ -33,7 +33,7 @@ export default defineConfig({
     },
   },
   env: {
-    // Example SLA threshold; override via env if chcesz
+    // Example SLA threshold; override via cypress env if desired.
     SLA_P95_GET: 1500,
   },
   reporter: "junit",
