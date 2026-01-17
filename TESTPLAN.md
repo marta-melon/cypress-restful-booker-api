@@ -3,6 +3,7 @@
 ## Objective
 
 Validate availability, correctness and resilience of the Restful Booker API with emphasis on `/auth` and `/booking` resources.
+URL: https://restful-booker.herokuapp.com
 
 ## Scope
 
