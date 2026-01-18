@@ -18,7 +18,7 @@ describe(
         (fx) => (baseTemplate = fx.base),
       );
 
-      Api.getToken().then( (result) => {
+      Api.getToken().then((result) => {
         token = result
 
         Api.create(baseTemplate).then((res) => {
@@ -28,11 +28,12 @@ describe(
           expect(createdId, "createdId").to.be.a("number").and.greaterThan(0);
         });
       })
-
     });
 
     it("GET /booking/{id} returns 404 for non-existent ID", () => {
-      Api.read(999999).its("status").should("be.oneOf", [404, 500]);
+      Api.read(999999)
+        .its("status")
+        .should("be.oneOf", [404, 500]);
     });
 
     it("PUT without token should be rejected", () => {
@@ -54,9 +55,10 @@ describe(
     });
 
     it("Update rejects invalid body -> 400", () => {
-      Api.update(createdId,{ unexpected: "field" }, token).then((res) => {
-        expect(res.status).to.eq(400);
-      });
+      Api.update(createdId, { unexpected: "field" }, token)
+        .then((res) => {
+          expect(res.status).to.eq(400);
+        });
     });
 
     it("Cannot delete non-existent -> 404 (with valid token)", () => {
@@ -64,14 +66,14 @@ describe(
     });
 
     it("Cannot update non-existent -> 400 (with valid token)", () => {
-      Api.update(NON_EXISTENT, baseTemplate , token)
+      Api.update(NON_EXISTENT, baseTemplate, token)
         .its("status")
         .should("be.oneOf", [400, 405]);
     });
 
     it("Cannot partialy update non-existent -> 404 (with valid token)", () => {
       const patch = { additionalneeds: "Dinner" };
-      Api.patch(NON_EXISTENT, patch , token)
+      Api.patch(NON_EXISTENT, patch, token)
         .its("status")
         .should("be.oneOf", [400, 405]);
     });

@@ -7,7 +7,7 @@ export const Api = {
       url: "/auth",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
+        "Accept": "application/json",
       },
       body: { username, password },
       failOnStatusCode: false,
@@ -18,7 +18,7 @@ export const Api = {
     return cy.request({
       method: "GET",
       url: "/booking",
-      headers: { Accept: "application/json" },
+      headers: { "Accept": "application/json" },
       failOnStatusCode: false,
     });
   },
@@ -27,7 +27,7 @@ export const Api = {
     return cy.request({
       method: "GET",
       url: `/booking/${id}`,
-      headers: { Accept: "application/json" },
+      headers: { "Accept": "application/json" },
       failOnStatusCode: false,
     });
   },
@@ -38,7 +38,7 @@ export const Api = {
       url: "/booking",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
+        "Accept": "application/json",
       },
       body,
       failOnStatusCode: false,
@@ -51,9 +51,9 @@ export const Api = {
       url: `/booking/${id}`,
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
+        "Accept": "application/json",
         // Restful Booker accepts auth via Cookie token on protected ops
-        ...(token ? { Cookie: `token=${token}` } : {}),
+        ...(token ? { "Cookie": `token=${token}` } : {}),
       },
       body,
       failOnStatusCode: false,
@@ -66,8 +66,8 @@ export const Api = {
       url: `/booking/${id}`,
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
-        ...(token ? { Cookie: `token=${token}` } : {}),
+        "Accept": "application/json",
+        ...(token ? { "Cookie": `token=${token}` } : {}),
       },
       body,
       failOnStatusCode: false,
@@ -79,27 +79,25 @@ export const Api = {
       method: "DELETE",
       url: `/booking/${id}`,
       headers: {
-        Accept: "application/json",
-        ...(token ? { Cookie: `token=${token}` } : {}),
+        "Accept": "application/json",
+        ...(token ? { "Cookie": `token=${token}` } : {}),
       },
       failOnStatusCode: false,
     });
   },
 
   getToken() {
-      // Read credentials strictly from env. Never keep fallbacks in code.
-      const username = Cypress.env("AUTH_USER");
-      const password = Cypress.env("AUTH_PASS");
+    const username = Cypress.env("AUTH_USER");
+    const password = Cypress.env("AUTH_PASS");
 
-      // Fail fast if credentials are missing.
-      if (!username || !password) {
-        throw new Error(
-          "AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets.",
-        );
-      }
+    // Fail fast if credentials are missing.
+    if (!username || !password) {
+      throw new Error(
+        "AUTH_USER/AUTH_PASS are required. Set them in cypress.env.json (not committed) or as GitHub Actions secrets.",
+      );
+    }
 
-      // Authenticate and cache token
-      return Api.auth({username, password})
+    return Api.auth({ username, password })
       .then((res) => {
         expect(res.status, "auth status").to.be.oneOf([200, 201]);
         expect(res.body && res.body.token, "auth token").to.be.a("string").and.not.be.empty;

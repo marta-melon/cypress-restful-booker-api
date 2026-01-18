@@ -13,7 +13,7 @@ describe(
     let baseTemplate;
 
     before(() => {
-      Api.getToken().then( (result) => {
+      Api.getToken().then((result) => {
         token = result
       });
 
@@ -38,7 +38,7 @@ describe(
           expect(res.status).to.be.oneOf([200, 201]);
           expect(res.body, "create body").to.have.property("bookingid");
 
-          cy.assertSchema( res.body, "bookingCreate" );
+          cy.assertSchema(res.body, "bookingCreate");
 
           createdId = res.body.bookingid;
           expect(createdId, "createdId").to.be.a("number").and.greaterThan(0);
@@ -53,11 +53,10 @@ describe(
         .and.greaterThan(0);
 
       Api.read(createdId).then((res) => {
-        // Validate status first to avoid reading undefined properties
         expect(res.status, "GET /booking/:id status").to.eq(200);
         expect(res.body, "GET /booking/:id body").to.be.an("object");
 
-        cy.assertSchema( res.body, "booking" );
+        cy.assertSchema(res.body, "booking");
 
         // Compare with template we used for creation
         expect(res.body).to.include({
@@ -87,7 +86,7 @@ describe(
 
           expect(res.status).to.be.oneOf([200, 201]);
 
-          cy.assertSchema( res.body, "booking" );
+          cy.assertSchema(res.body, "booking");
 
           expect(res.body).to.include({
             firstname: fx.update.firstname,
@@ -104,7 +103,7 @@ describe(
     it("partially updates the booking (PATCH)", () => {
       const patch = { additionalneeds: "Dinner" };
       const t0 = performance.now();
-      Api.patch( createdId, patch, token ).then((res) => {
+      Api.patch(createdId, patch, token).then((res) => {
         const dt = performance.now() - t0;
         cy.recordMetric(
           "patch-booking.csv",

@@ -1,7 +1,7 @@
 // P95 SLA
 import { Api } from "../support/apiClient";
 
-function p95(arr) {
+const p95 = (arr) => {
   const sorted = [...arr].sort((a, b) => a - b);
   const idx = Math.ceil(0.95 * sorted.length) - 1;
   return sorted[Math.max(0, idx)];
