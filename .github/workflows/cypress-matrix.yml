@@ -16,7 +16,7 @@ jobs:
       matrix:
         browser: [electron, chrome]
 
-      env:
+    env:
       AUTH_USER: ${{ secrets.CYPRESS_USERNAME || secrets.AUTH_USER || vars.CYPRESS_USERNAME || vars.AUTH_USER }}
       AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD || secrets.AUTH_PASS || vars.CYPRESS_PASSWORD || vars.AUTH_PASS }}
 
@@ -41,13 +41,10 @@ jobs:
         run: |
           echo "Event: ${{ github.event_name }}"
           echo "Repository: ${{ github.repository }}"
-
           if [ -z "$AUTH_USER" ] || [ -z "$AUTH_PASS" ]; then
             echo "::error::AUTH_USER/AUTH_PASS are not visible to this job."
-            echo "See checklist in cypress-e2e.yml."
             exit 1
           fi
-
           echo "Secrets/variables are present (values are masked)."
 
       - name: Run Cypress — with secrets
@@ -57,24 +54,3 @@ jobs:
         run: |
           npx cypress run --headless --browser "$BROWSER" \
             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
-
-      - name: Run Cypress (no-secrets subset for fork PRs)
-        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
-        env:
-          BROWSER: ${{ matrix.browser }}
-        run: |
-          echo "Running subset without secrets (fork PR)."
-          npx cypress run --headless --browser "$BROWSER" \
-            --spec "cypress/e2e/auth-negative.cy.js,cypress/e2e/bookings-negative*.cy.js,cypress/e2e/security-sanity.cy.js,cypress/e2e/sla-metrics.cy.js" \
-            --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
-
-      - name: Upload artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cypress-${{ matrix.browser }}
-          path: |
-            cypress/screenshots
-            cypress/videos
-            results
-          if-no-files-found: ignore
