@@ -10,13 +10,15 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
   e2e:
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
         browser: [electron, chrome]
 
-    # Jeśli masz Environment Secrets (np. 'ci'), odkomentuj:
-    # environment: ci
+      env:
+      AUTH_USER: ${{ secrets.CYPRESS_USERNAME || secrets.AUTH_USER || vars.CYPRESS_USERNAME || vars.AUTH_USER }}
+      AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD || secrets.AUTH_PASS || vars.CYPRESS_PASSWORD || vars.AUTH_PASS }}
 
     steps:
       - name: Checkout
@@ -26,6 +28,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -35,26 +38,22 @@ jobs:
 
       - name: Check secrets presence (masked)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        env:
-          AUTH_USER: ${{ secrets.CYPRESS_USERNAME || secrets.AUTH_USER || vars.CYPRESS_USERNAME || vars.AUTH_USER }}
-          AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD || secrets.AUTH_PASS || vars.CYPRESS_PASSWORD || vars.AUTH_PASS }}
         run: |
           echo "Event: ${{ github.event_name }}"
           echo "Repository: ${{ github.repository }}"
+
           if [ -z "$AUTH_USER" ] || [ -z "$AUTH_PASS" ]; then
-            echo "::error::Secrets/variables are NOT visible to this job."
-            echo "See same checklist as in cypress-e2e.yml."
+            echo "::error::AUTH_USER/AUTH_PASS are not visible to this job."
+            echo "See checklist in cypress-e2e.yml."
             exit 1
-          else
-            echo "Secrets/variables are present (masked)."
           fi
+
+          echo "Secrets/variables are present (values are masked)."
 
       - name: Run Cypress — with secrets
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           BROWSER: ${{ matrix.browser }}
-          AUTH_USER: ${{ secrets.CYPRESS_USERNAME || secrets.AUTH_USER || vars.CYPRESS_USERNAME || vars.AUTH_USER }}
-          AUTH_PASS: ${{ secrets.CYPRESS_PASSWORD || secrets.AUTH_PASS || vars.CYPRESS_PASSWORD || vars.AUTH_PASS }}
         run: |
           npx cypress run --headless --browser "$BROWSER" \
             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
