@@ -7,15 +7,13 @@ export default defineConfig({
     baseUrl: "https://restful-booker.herokuapp.com",
     supportFile: "cypress/support/e2e.js",
     setupNodeEvents(on, config) {
-      -      // Map CI/process env -> Cypress.env so tests can read via Cypress.env("AUTH_USER"/"AUTH_PASS")
--      config.env = {
--        ...config.env,
--        AUTH_USER:
--          process.env.AUTH_USER ?? (config.env && config.env.AUTH_USER),
--        AUTH_PASS:
--          process.env.AUTH_PASS ?? (config.env && config.env.AUTH_PASS),
--      };
--
+      // Map CI/process env -> Cypress.env so tests can read via Cypress.env("AUTH_USER"/"AUTH_PASS")
+      config.env = {
+        ...config.env,
+        AUTH_USER: process.env.AUTH_USER ?? config.env.AUTH_USER,
+        AUTH_PASS: process.env.AUTH_PASS ?? config.env.AUTH_PASS,
+      };
+
       // Task used by SLA test to append CSV rows
       on("task", {
         metrics_appendCsv({ file, row }) {
