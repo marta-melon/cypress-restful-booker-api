@@ -54,3 +54,24 @@ jobs:
         run: |
           npx cypress run --headless --browser "$BROWSER" \
             --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
+
+      - name: Run Cypress (no-secrets subset for fork PRs)
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        env:
+          BROWSER: ${{ matrix.browser }}
+        run: |
+          echo "Running subset without secrets (fork PR)."
+          npx cypress run --headless --browser "$BROWSER" \
+            --spec "cypress/e2e/auth-negative.cy.js,cypress/e2e/bookings-negative*.cy.js,cypress/e2e/security-sanity.cy.js,cypress/e2e/sla-metrics.cy.js" \
+            --reporter junit --reporter-options "mochaFile=results/junit-[hash].xml,toConsole=true"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-${{ matrix.browser }}
+          path: |
+            cypress/screenshots
+            cypress/videos
+            results
+          if-no-files-found: ignore
